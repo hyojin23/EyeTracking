@@ -10,6 +10,7 @@ import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.graphics.Bitmap.CompressFormat;
+import android.graphics.Color;
 import android.graphics.PixelFormat;
 import android.graphics.Point;
 import android.hardware.display.DisplayManager;
@@ -42,6 +43,7 @@ import android.widget.ImageView;
 import android.widget.Toast;
 
 
+import com.bumptech.glide.Glide;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.google.android.material.snackbar.Snackbar;
 
@@ -65,6 +67,7 @@ import posco_ai.e_con.threadClass.CoordinateReceiverTask;
 public class MainActivity extends AppCompatActivity {
 
     private final String startUrl = "https://www.autodraw.com/";
+//    private final String startUrl = "https://www.naver.com/";
     private static final int REQUEST_CAMERA = 1;
     private static final String TAG = "MainActivity";
 
@@ -90,9 +93,8 @@ public class MainActivity extends AppCompatActivity {
     private Socket socket;
 
     //    String serverIP = "192.168.0.17";
-    String serverIP = "192.168.35.74";
-    int serverPORT = 9000;
-    int PORT = 8500;
+    String serverIP = "192.168.35.159";
+    int cameraPORT = 8500;
     int screenPORT = 8600;
 
     private WebView webView;
@@ -126,6 +128,7 @@ public class MainActivity extends AppCompatActivity {
         initVariables();
         cameraViewInit();
         setWeb(webView);
+//        Glide.with(this).load(R.drawable.close_fb_icon).into(testImageView);
 
         // start capture handling thread
         new Thread() {
@@ -153,6 +156,7 @@ public class MainActivity extends AppCompatActivity {
         fabSetting = findViewById(R.id.fabSetting);
         fabScreenShare = findViewById(R.id.fabScreenShare);
         mOpenCvCameraView = findViewById(R.id.activity_surface_view);
+
     }
 
     private void initVariables() {
@@ -163,7 +167,6 @@ public class MainActivity extends AppCompatActivity {
 
         fabOpen = AnimationUtils.loadAnimation(getApplicationContext(), R.anim.fab_open);
         fabClose = AnimationUtils.loadAnimation(getApplicationContext(), R.anim.fab_close);
-
         fabViewAni();
         Log.d(TAG, "initVariables: 실행");
         cameraProcessor = new CameraProcessor(gazePointer);
@@ -181,15 +184,15 @@ public class MainActivity extends AppCompatActivity {
 
 
     private void setWeb(WebView webView) {
-        webView.setOnTouchListener(new View.OnTouchListener() {
-            @Override
-            public boolean onTouch(View v, MotionEvent event) {
-                float tmpx = event.getX();
-                float tmpy = event.getY();
-                Toast.makeText(MainActivity.this, "Coordi :" + tmpx + "/" + tmpy, Toast.LENGTH_SHORT).show();
-                return false;
-            }
-        });
+//        webView.setOnTouchListener(new View.OnTouchListener() {
+//            @Override
+//            public boolean onTouch(View v, MotionEvent event) {
+//                float tmpx = event.getX();
+//                float tmpy = event.getY();
+////                Toast.makeText(MainActivity.this, "Coordi :" + tmpx + "/" + tmpy, Toast.LENGTH_SHORT).show();
+//                return false;
+//            }
+//        });
         webView.getSettings().setJavaScriptEnabled(true);
         webView.loadUrl(startUrl);
     }
@@ -224,24 +227,27 @@ public class MainActivity extends AppCompatActivity {
 //                coordinateReceiverTask = new CoordinateReceiverTask(PORT, gazePointer);
 //                coordinateReceiverTask.execute();
 
+
                     Snackbar.make(v, "Gaze Tracking Activation", Snackbar.LENGTH_LONG)
                             .setAction("Action", null).show();
 
-
                     mOpenCvCameraView.enableView();
                     mOpenCvCameraView.setVisibility(View.VISIBLE);
-                    cameraProcessor.execute(serverIP, PORT + "");
-                    Log.d(TAG, "onClick: serverIP: " + serverIP + " PORT: " + PORT);
+                    mOpenCvCameraView.setCameraIndex(CameraBridgeViewBase.CAMERA_ID_FRONT);
+                    // Asyctask 실행
+//                    cameraProcessor.execute(serverIP, cameraPORT + "");
+                    Log.d(TAG, "onClick: serverIP: " + serverIP + " cameraPORT: " + cameraPORT);
 
                     fabGaze.setImageResource(R.drawable.touch_fb_icon);
                     pointerVisible = !pointerVisible;
+
                 }
                 break;
             // setting 버튼
             case R.id.fabSetting:
                 AlertDialog.Builder builder = new AlertDialog.Builder(this);
                 // EconUtils.getLocalIpAddress(): 디바이스의 IP 주소 리턴
-                builder.setTitle("IP Address").setMessage(EconUtils.getLocalIpAddress() + ":" + PORT).setPositiveButton("확인", new DialogInterface.OnClickListener() {
+                builder.setTitle("IP Address").setMessage(EconUtils.getLocalIpAddress() + ":" + cameraPORT).setPositiveButton("확인", new DialogInterface.OnClickListener() {
                     public void onClick(DialogInterface dialog, int whichButton) {
                         dialog.cancel();
                     }
@@ -251,7 +257,8 @@ public class MainActivity extends AppCompatActivity {
             case R.id.fabScreenShare:
                 // 두번째로 누를 때
                 if (shareClicked) {
-                    Toast.makeText(getApplicationContext(), "녹화 중지 버튼 누름", Toast.LENGTH_SHORT).show();
+                    Log.d(TAG, "onClick: 녹화 중지 버튼 누름");
+//                    Toast.makeText(getApplicationContext(), "녹화 중지 버튼 누름", Toast.LENGTH_SHORT).show();
                     fabScreenShare.setImageResource(R.drawable.ic_screen_share_white_24dp);
                     if (mediaProjection != null) {
                         // 녹화 종료
@@ -261,7 +268,8 @@ public class MainActivity extends AppCompatActivity {
                 } else {
                     // 녹화 권한 요청
                     startProjection();
-                    Toast.makeText(this, "녹화 버튼 누름", Toast.LENGTH_SHORT).show();
+                    Log.d(TAG, "onClick: 녹화 버튼 누름");
+//                    Toast.makeText(this, "녹화 버튼 누름", Toast.LENGTH_SHORT).show();
                 }
                 shareClicked = !shareClicked;
                 break;
@@ -309,18 +317,7 @@ public class MainActivity extends AppCompatActivity {
 //                }
 
                 // 소켓 생성
-                new Thread(new Runnable() {
-                    @Override
-                    public void run() {
-                        try {
-                            Log.d(TAG, "onImageAvailable: 소켓 연결 대기중 IP: " + serverIP + " PORT: " + screenPORT);
-                            socket = new Socket(serverIP, screenPORT);
-                            Log.d(TAG, "onImageAvailable: 소켓 연결 성공 IP: " + serverIP + " PORT: " + screenPORT);
-                        } catch (IOException e) {
-                            e.printStackTrace();
-                        }
-                    }
-                }).start();
+                createSocket(serverIP, screenPORT);
             }
 
             // display metrics. 디바이스 가로, 세로 길이와 dpi를 구함
@@ -382,6 +379,8 @@ public class MainActivity extends AppCompatActivity {
 
                     // 비트맵 생성
                     bitmap = Bitmap.createBitmap(mWidth + rowPadding / pixelStride, mHeight, Bitmap.Config.ARGB_8888);
+                    Log.d(TAG, "onImageAvailable: mWidth:" + mWidth);
+                    Log.d(TAG, "onImageAvailable: mHeight: " + mHeight);
                     bitmap.copyPixelsFromBuffer(buffer);
 
                     /** 스크립 캡쳐한 것을 디바이스에 저장할 때 사용 */
@@ -406,7 +405,7 @@ public class MainActivity extends AppCompatActivity {
                     int wantDigit = 10;
                     int currentDigit = stLen.length();
                     // 10자리를 맞추기 위해 나머지 부분은 공백으로 채움
-                    for (int i = 0; i < wantDigit-currentDigit; i ++ ) {
+                    for (int i = 0; i < wantDigit - currentDigit; i++) {
                         stLen.append(' ');
                     }
                     Log.d(TAG, "onImageAvailable: stLen: " + stLen);
@@ -419,8 +418,9 @@ public class MainActivity extends AppCompatActivity {
                     ba.writeTo(os);
 
                     // 이름이 중복되지 않게 하기 위해 숫자를 1씩 증가시켜 이름에 붙여줌
-                    IMAGES_PRODUCED++;
-                    Log.e(TAG, "captured image: " + IMAGES_PRODUCED);
+                    // (이미지를 파일로 저장할 때 파일명 중복되지 않게 하기 위해 쓰는 코드)
+                    // IMAGES_PRODUCED++;
+                    // Log.e(TAG, "captured image: " + IMAGES_PRODUCED);
                 }
 
             } catch (Exception e) {
@@ -593,7 +593,7 @@ public class MainActivity extends AppCompatActivity {
             fabScreenShare.setClickable(false);
 
             fabMain.setImageResource(R.drawable.open_fb_icon);
-        // 버튼이 안보일 때
+            // 버튼이 안보일 때
         } else {
             fabGaze.startAnimation(fabOpen);
             fabSetting.startAnimation(fabOpen);
@@ -671,5 +671,23 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-
+    private void createSocket(final String IP, final int PORT) {
+        // 소켓 생성
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    Log.d(TAG, "onImageAvailable: 소켓 연결 대기중 IP: " + IP + " PORT: " + PORT);
+                    socket = new Socket(IP, PORT);
+                    Log.d(TAG, "onImageAvailable: 소켓 연결 성공 IP: " + IP + " PORT: " + PORT);
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+        }).start();
+    }
 }
+
+
+
+

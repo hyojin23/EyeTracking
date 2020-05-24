@@ -17,6 +17,7 @@ def recvAll(sock, count):
 # 본인 컴퓨터 IP 주소
 IP = socket.gethostbyname(socket.getfqdn())
 PORT = 8600
+print('IP Address ', IP, ':', PORT)
 
 # 소켓 객체를 생성합니다.
 # 주소 체계(address family)로 IPv4, 소켓 타입으로 TCP 사용합니다.
@@ -38,7 +39,7 @@ try:
     # 무한루프를 돌면서
     count = 0
     while True:
-        # 안드로이드에서 보낸 바이트 배열의 길이를 String으로 나타낸 것
+        # 안드로이드에서 보낸 바이트 배열의 길이를 String으로 나타낸 것 ex) '101979____' _는 공백
         length = recvAll(client_socket, 10)
         print("이미지 파일의 크기: {} byte".format(int(length)))
         # 안드로이드 스크린 하나의 프레임 bytes

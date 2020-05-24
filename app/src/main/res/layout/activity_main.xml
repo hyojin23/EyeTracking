@@ -4,17 +4,26 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:src="@color/design_default_color_secondary"
     tools:context=".MainActivity">
 
-
     <org.opencv.android.JavaCameraView
+        android:id="@+id/activity_surface_view"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:id="@+id/activity_surface_view" />
-    <WebView
-        android:id="@+id/webView"
+        />
+
+    <androidx.constraintlayout.widget.ConstraintLayout
         android:layout_width="match_parent"
-        android:layout_height="match_parent" />
+        android:layout_height="match_parent">
+
+        <WebView
+            android:id="@+id/webView"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent" />
+
+
+    </androidx.constraintlayout.widget.ConstraintLayout>
 
 
     <ImageView
