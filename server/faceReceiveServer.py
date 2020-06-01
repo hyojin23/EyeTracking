@@ -128,24 +128,6 @@ def get_gaze_ratio(eye_points, facial_landmarks):
     return horizontal_gaze_ratio, vertical_gaze_ratio
 
 
-# 눈동자 방향 정보를 안드로이드 기기에 보내는 쓰레드
-def direction_send_thread(client_send_socket, c_send_addr):
-    while True:
-        try:
-            click = 0
-            directions = str(horizontal_view_direction) + '/' + str(vertical_view_direction) + '/' + str(click) + '\n'
-
-            # 문자열을 byte로 변환하여 클라이언트로 보냄
-            client_send_socket.sendall(directions.encode('utf-8'))
-
-            # 클라이언트로 보내는 방향 String
-            # print('send data', directions)
-        except ConnectionResetError as e:
-            print('Disconnected by ' + c_send_addr[0], ':', c_send_addr[1])
-            break
-
-    client_send_socket.close()
-
 try:
     client_socket, client_addr = socket.accept()
     # client_send_socket, c_send_addr = socket.accept()
@@ -155,8 +137,7 @@ try:
     horizontal_view_direction = "CENTER"
     vertical_view_direction = "CENTER"
 
-    # 눈동자 방향을 보내기 위한 쓰레드 시작
-    # start_new_thread(direction_send_thread, (client_send_socket, c_send_addr))
+
     print("실행")
 
     while True:
@@ -222,6 +203,7 @@ try:
                 new_frame[:] = (255, 0, 0)
                 vertical_view_direction = '''UP %s''' % vertical_gaze_ratio
 
+            # 눈동자 방향 정보를 안드로이드 기기에 보냄
             click = 0
             directions = str(horizontal_view_direction) + '/' + str(vertical_view_direction) + '/' + str(click) + '\n'
 

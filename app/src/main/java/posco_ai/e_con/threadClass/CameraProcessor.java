@@ -87,11 +87,11 @@ public class CameraProcessor extends AsyncTask<String, String, Boolean> implemen
 
     @Override
     public Mat onCameraFrame(CameraBridgeViewBase.CvCameraViewFrame inputFrame) {
-        try {
-            Thread.sleep(1000);
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
+//        try {
+//            Thread.sleep(1000);
+//        } catch (InterruptedException e) {
+//            e.printStackTrace();
+//        }
         Log.d(TAG, "onCameraFrame: 실행");
         // inputFrame을 matResult에 복사, 서버에 전송되는 이미지가 세로방향에 맞게 나오게 하기 위해 t()로 행렬 전치
         inputFrame.rgba().t().copyTo(matResult);
