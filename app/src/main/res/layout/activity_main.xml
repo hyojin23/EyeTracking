@@ -27,8 +27,8 @@
 
 
     <ImageView
-        android:visibility="invisible"
         android:id="@+id/gazePointer"
+        android:visibility="invisible"
         android:layout_width="50dp"
         android:layout_height="50dp"
         android:layout_gravity="center"

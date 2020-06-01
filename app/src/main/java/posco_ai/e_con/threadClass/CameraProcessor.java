@@ -1,5 +1,8 @@
 package posco_ai.e_con.threadClass;
 
+import android.animation.ObjectAnimator;
+import android.app.Activity;
+import android.content.Context;
 import android.graphics.Bitmap;
 import android.os.AsyncTask;
 import android.util.Log;
@@ -24,6 +27,10 @@ import java.net.Socket;
 import java.util.Arrays;
 
 import android.graphics.Bitmap.CompressFormat;
+import android.webkit.WebView;
+import android.widget.Toast;
+
+import posco_ai.e_con.MainActivity;
 
 
 public class CameraProcessor extends AsyncTask<String, String, Boolean> implements CameraBridgeViewBase.CvCameraViewListener2 {
@@ -31,19 +38,24 @@ public class CameraProcessor extends AsyncTask<String, String, Boolean> implemen
 
     private Mat matResult;
     private Boolean previewVisible;
-    protected int x, y, click;
+    protected int click;
     private View gazePointer;
     private static final String TAG = "CameraProcessor";
     private Socket socket;
     private String serverIP = "192.168.35.159";
     private int cameraPORT = 8500;
+    private Context context;
+    private WebView webView;
+    int bottomTo = 0;
+    int upTo = 0;
 
-    public CameraProcessor(View gazePointer) {
+    public CameraProcessor(View gazePointer, Context context, WebView webView) {
         Log.d(TAG, "CameraProcessor: 실행");
         matResult = new Mat();
         previewVisible = false;
         this.gazePointer = gazePointer;
-
+        this.context = context;
+        this.webView = webView;
 
     }
 
@@ -75,6 +87,11 @@ public class CameraProcessor extends AsyncTask<String, String, Boolean> implemen
 
     @Override
     public Mat onCameraFrame(CameraBridgeViewBase.CvCameraViewFrame inputFrame) {
+        try {
+            Thread.sleep(1000);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
         Log.d(TAG, "onCameraFrame: 실행");
         // inputFrame을 matResult에 복사, 서버에 전송되는 이미지가 세로방향에 맞게 나오게 하기 위해 t()로 행렬 전치
         inputFrame.rgba().t().copyTo(matResult);
@@ -148,39 +165,20 @@ public class CameraProcessor extends AsyncTask<String, String, Boolean> implemen
     }
 
 
+    // 서버로부터 눈동자 방향을 받는 소켓 연결 시도
     @Override
     protected Boolean doInBackground(String... strings) {
         try {
-            Thread.sleep(1000);
-            Log.d(TAG, "doInBackground: 실행");
-
-            String IP = strings[0];
-            int PORT = Integer.parseInt(strings[1]);
-            Log.d(TAG, IP + ":" + PORT);
-
-            final int imgSize = (int) (matResult.total() * matResult.channels());
-            Log.d(TAG, "SIZE : " + imgSize);
-
-            byte[] outData = new byte[imgSize];
-            byte[] inData = new byte[30];
-            socket = new Socket(IP, PORT);
-            Log.d(TAG, "doInBackground: 소켓 연결 성공: " + IP + " : " + PORT);
-
-            Log.d(TAG, "STREAM");
+//            Thread.sleep(1000);
 
             DataOutputStream outStream = new DataOutputStream(socket.getOutputStream());
             DataInputStream inStream = new DataInputStream(socket.getInputStream());
             // 데이터를 모아뒀다가 한줄씩 출력하기 위해 BufferedReader 사용
             BufferedReader br = new BufferedReader(new InputStreamReader(inStream));
 
-
             Log.d(TAG, "WHILE");
             while (true) {
                 Thread.sleep(1000);
-                matResult.put(0, 0, outData);
-                Log.d(TAG, "WRITE");
-
-                outStream.write(outData);
 
                 Log.d(TAG, "READ");
                 // 서버에서 받은 데이터를 한줄씩 읽음
@@ -209,15 +207,69 @@ public class CameraProcessor extends AsyncTask<String, String, Boolean> implemen
     public void onProgressUpdate(String... values) {
         Log.d(TAG, "onProgressUpdate: 실행");
         Log.d(TAG, "onProgressUpdate: values[0]: " + values[0]);
-        String[] coordinates = values[0].split("/");
-        Log.d(TAG, "onProgressUpdate: x값: " + coordinates[0]);
-        Log.d(TAG, "onProgressUpdate: y값: " + coordinates[1]);
-        x = Integer.parseInt(coordinates[0]);
-        y = Integer.parseInt(coordinates[1]);
-        click = Integer.parseInt(coordinates[2]);
-        Log.d(TAG, "onProgressUpdate: x 좌표: " + x + " y 좌표: " + y + " click: " + click);
+        String[] viewData = values[0].split("/");
+        String horizontalViewData = viewData[0];
+        String verticalViewData = viewData[1];
+        Log.d(TAG, "onProgressUpdate: 수평방향 시선 정보: " + viewData[0]);
+        Log.d(TAG, "onProgressUpdate: 수직방향 시선 정보: " + viewData[1]);
+
+        String[] horizontalViewArray = horizontalViewData.split(" ");
+        String[] verticalViewArray = verticalViewData.split(" ");
+
+        // 수평으로 움직이는 시선 방향과 비율
+        String horizontalDirection = horizontalViewArray[0];
+        String horizontalRatio = horizontalViewArray[1];
+        Log.d(TAG, "onProgressUpdate: horizontalDirection: " + horizontalDirection);
+        Log.d(TAG, "onProgressUpdate: horizontalRatio: " + horizontalRatio);
+
+        // 수직으로 움직이는 시선 방향과 비율
+        String verticalDirection = verticalViewArray[0];
+        String verticalRatio = verticalViewArray[1];
+        Log.d(TAG, "onProgressUpdate: verticalDirection: " + verticalDirection);
+        Log.d(TAG, "onProgressUpdate: verticalRatio: " + verticalRatio);
+
+        // 소수 셋째 자리에서 반올림(둘째 자리까지 나타냄)
+        double x_d = (Math.round(Double.parseDouble(horizontalRatio)*100)/100.0);
+        // 소수 셋째 자리에서 반올림(둘째 자리까지 나타냄)
+        double y_d = (Math.round(Double.parseDouble(verticalRatio)*100)/100.0);
+
+//        click = Integer.parseInt(viewData[2]);
+//        Log.d(TAG, "onProgressUpdate: x 좌표: " + x + " y 좌표: " + y + " click: " + click);
+
+        // 500, 800이 화면의 중앙. x값이 작을수록 왼쪽, 클수록 오른쪽을 보는 것, y값이 작을수록 아래, 클수록 위를 보는 것
+        int x = (int)(500 * x_d);
+        int y = (int)(1200 * (1/y_d));
+
         gazePointer.setX(x);
         gazePointer.setY(y);
+        Toast.makeText(context, verticalDirection + " 수평방향: " + x + " 수직방향: " + y, Toast.LENGTH_SHORT).show();
+
+        // 시선방향이 위쪽일 경우
+        if (verticalDirection.equals("UP")) {
+            Log.d(TAG, "onClick: webView.getScrollY(): " + webView.getScrollY());
+
+            // 현재 스크롤 위치에 따라 스크롤 도착지점을 다르게 만듦. 스크롤 도착지점이 마이너스가 되면
+            // webView.getScrollY()이 마이너스가 되어 scroll down을 여러번해야 스크롤이 내려가게됨
+            if (webView.getScrollY() > 850) {
+                upTo = webView.getScrollY() - 850;
+            } else {
+                upTo = 0;
+            }
+
+            ObjectAnimator anim = ObjectAnimator.ofInt(webView, "scrollY", webView.getScrollY(), upTo);
+            anim.setDuration(1000).start();
+        // 시선방향이 아래일 경우
+        } else {
+
+            Log.d(TAG, "onClick: webView.getScrollY(): " + webView.getScrollY());
+            bottomTo = webView.getScrollY() + 850;
+            // ofInt(애니메이션 적용 대상, 애니메이션 종류, 애니메이션 시작점(스크롤 출발위치), 애니메이션 끝점(스크롤 도착위치))
+            ObjectAnimator anim = ObjectAnimator.ofInt(webView, "scrollY", webView.getScrollY(), bottomTo);
+            anim.setDuration(1000).start();
+
+        }
+
+        // 클릭
         if (click == 1) {
 //                EconUtils.gazeTouchMotion(webView,x,y, MotionEvent.ACTION_DOWN);
 //                EconUtils.gazeTouchMotion(webView,x,y,MotionEvent.ACTION_UP);

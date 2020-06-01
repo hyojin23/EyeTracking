@@ -39,6 +39,7 @@ import android.view.WindowManager;
 import android.view.animation.Animation;
 import android.view.animation.AnimationUtils;
 import android.webkit.WebView;
+import android.webkit.WebViewClient;
 import android.widget.ImageView;
 import android.widget.Toast;
 
@@ -66,8 +67,9 @@ import posco_ai.e_con.threadClass.CoordinateReceiverTask;
 
 public class MainActivity extends AppCompatActivity {
 
-    private final String startUrl = "https://www.autodraw.com/";
+//    private final String startUrl = "https://www.autodraw.com/";
 //    private final String startUrl = "https://www.naver.com/";
+    private final String startUrl = "https://www.youtube.com/";
     private static final int REQUEST_CAMERA = 1;
     private static final String TAG = "MainActivity";
 
@@ -169,7 +171,7 @@ public class MainActivity extends AppCompatActivity {
         fabClose = AnimationUtils.loadAnimation(getApplicationContext(), R.anim.fab_close);
         fabViewAni();
         Log.d(TAG, "initVariables: 실행");
-        cameraProcessor = new CameraProcessor(gazePointer);
+        cameraProcessor = new CameraProcessor(gazePointer, getApplicationContext(), webView);
 
     }
 
@@ -193,6 +195,9 @@ public class MainActivity extends AppCompatActivity {
 //                return false;
 //            }
 //        });
+        // 웹뷰가 액티비티 안에서 실행되게 함
+        webView.setWebViewClient(new WebViewClient());
+        // 자바스크립트 허용
         webView.getSettings().setJavaScriptEnabled(true);
         webView.loadUrl(startUrl);
     }
@@ -234,8 +239,8 @@ public class MainActivity extends AppCompatActivity {
                     mOpenCvCameraView.enableView();
                     mOpenCvCameraView.setVisibility(View.VISIBLE);
                     mOpenCvCameraView.setCameraIndex(CameraBridgeViewBase.CAMERA_ID_FRONT);
-                    // Asyctask 실행
-//                    cameraProcessor.execute(serverIP, cameraPORT + "");
+                    // CameraProcessor의 Asyctask 실행
+                    cameraProcessor.execute(serverIP, cameraPORT + "");
                     Log.d(TAG, "onClick: serverIP: " + serverIP + " cameraPORT: " + cameraPORT);
 
                     fabGaze.setImageResource(R.drawable.touch_fb_icon);
